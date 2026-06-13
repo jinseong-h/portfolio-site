@@ -109,6 +109,7 @@ html, body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  word-break: keep-all;
 }
 
 a {
