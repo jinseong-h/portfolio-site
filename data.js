@@ -2,92 +2,90 @@
 // We split them logically into Long-form and Short-form categories to populate the portfolio initially.
 const DEFAULT_VIDEOS = [
   {
-    id: "vczru0_aSOI",
-    title: "감각적인 로드 트립 브이로그",
-    description: "시네마틱한 톤앤매너와 부드러운 트랜지션을 사용하여 여정의 감성을 그대로 담아낸 롱폼 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/watch?v=vczru0_aSOI",
-    category: "longform",
-    createdAt: 1718210000000
-  },
-  {
-    id: "NNIEPLWvaFQ",
-    title: "신형 SUV 상세 리뷰 & 시승기",
-    description: "정보 전달력을 높이기 위해 깔끔한 모션 그래픽 자막과 멀티카메라 편집을 적용한 전문 차량 리뷰 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/watch?v=NNIEPLWvaFQ",
-    category: "longform",
-    createdAt: 1718220000000
-  },
-  {
-    id: "WYzeUvPLYbc",
-    title: "데스크 셋업 & 테크 기기 가이드",
-    description: "정교한 컷 편집과 사운드 디자인으로 테크 제품의 매력을 극대화한 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/watch?v=WYzeUvPLYbc",
-    category: "longform",
-    createdAt: 1718230000000
-  },
-  {
-    id: "f1TLQoQbE2U",
-    title: "일상 브이로그 - 조용한 주말의 기록",
-    description: "시청자가 편안함을 느끼도록 자연스러운 컷 전환과 ASMR 효과음을 강조한 롱폼 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/watch?v=f1TLQoQbE2U",
-    category: "longform",
-    createdAt: 1718240000000
-  },
-  {
     id: "hU8pjV_jhOc",
-    title: "홈쿠킹 - 이탈리안 전통 파스타 만들기",
-    description: "요리 과정을 역동적이고 빠르게 편집하여 시청 지속 시간을 확보한 쿡방 영상입니다.",
+    title: "'후지필름' 감독 인터뷰 영상",
+    description: "편집 뿐만 아니라 촬영도 했던 인터뷰 영상 입니다.",
     youtubeUrl: "https://www.youtube.com/watch?v=hU8pjV_jhOc",
     category: "longform",
     createdAt: 1718250000000
   },
   {
+    id: "vczru0_aSOI",
+    title: "유튜브 '이안'님, 정보성 영상",
+    description: "정보 전달을 위한 담백한 편집의 영상입니다.",
+    youtubeUrl: "https://www.youtube.com/watch?v=vczru0_aSOI",
+    category: "longform",
+    createdAt: 1718210000000
+  },
+  {
+    id: "WYzeUvPLYbc",
+    title: "유튜브 '배룡', 게임 스토리 소개 영상",
+    description: "실사 촬영본 없이도 영상 제작이 가능합니다.",
+    youtubeUrl: "https://www.youtube.com/watch?v=WYzeUvPLYbc",
+    category: "longform",
+    createdAt: 1718230000000
+  },
+  {
+    id: "NNIEPLWvaFQ",
+    title: "유튜브 '셀러살롱' 정보성 영상",
+    description: "정보 전달을 위한 영상입니다.",
+    youtubeUrl: "https://www.youtube.com/watch?v=NNIEPLWvaFQ",
+    category: "longform",
+    createdAt: 1718220000000
+  },
+  {
+    id: "f1TLQoQbE2U",
+    title: "유튜브 '이상욱', 인테리어 정보성 영상",
+    description: "인테리어에 관한 정보를 전달하는 영상입니다.",
+    youtubeUrl: "https://www.youtube.com/watch?v=f1TLQoQbE2U",
+    category: "longform",
+    createdAt: 1718240000000
+  },
+  {
     id: "I--gsPN3pc4",
-    title: "종합 게임 하이라이트 & 공략",
-    description: "화려한 이펙트와 템포감 있는 편집으로 지루함을 없앤 게임 하이라이트 영상입니다.",
+    title: "빠른 템포의 영상 제작",
+    "description": "다양한 효과와 빠른 템포로 집중력을 가져오는 스타일의 영상 제작입니다.",
     youtubeUrl: "https://www.youtube.com/watch?v=I--gsPN3pc4",
     category: "longform",
     createdAt: 1718260000000
   },
-  
-  // Shorts (Short-form works)
   {
-    id: "We970P-7c5I",
-    title: "스마트폰 카메라 프로처럼 쓰는 꿀팁 3가지",
-    description: "모바일 시청을 고려해 화면 가득 찬 레이아웃과 빠른 자막 전환을 적용한 숏폼 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/shorts/We970P-7c5I",
+    id: "Ergx1xNWayY",
+    title: "게임 쇼츠",
+    description: "",
+    youtubeUrl: "https://youtube.com/shorts/Ergx1xNWayY?feature=share",
     category: "shortform",
     createdAt: 1718270000000
   },
   {
-    id: "sfmYcE--Qls",
-    title: "찰나의 여행 모먼트 - 제주도 편",
-    description: "음악 비트에 맞춰 빠르게 전환되는 비주얼 중심의 숏폼 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/shorts/sfmYcE--Qls",
+    id: "gaSh3OeqHCU",
+    title: "프렌차이즈 홍보용 쇼츠",
+    description: "",
+    youtubeUrl: "https://youtube.com/shorts/gaSh3OeqHCU?feature=share",
     category: "shortform",
     createdAt: 1718280000000
   },
   {
-    id: "hQ1_JNCbOIo",
-    title: "5분 완성 맛보장 자취 요리 레시피",
-    description: "핵심 요리 과정만을 압축하여 시각적 몰입도를 높인 세로형 숏폼 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/shorts/hQ1_JNCbOIo",
+    id: "MeQ-yE8zV4s",
+    title: "롱폼에서 쇼츠로",
+    description: "기존 제작된 롱폼 영상에서 주요 영상을 편집하여 완성한 쇼츠 영상입니다.",
+    youtubeUrl: "https://youtube.com/shorts/MeQ-yE8zV4s?feature=share",
     category: "shortform",
     createdAt: 1718290000000
   },
   {
-    id: "ziiO01behIo",
-    title: "조회수를 부르는 유튜브 인트로 연출법",
-    description: "영상 기획/편집 꿀팁을 간결하게 전하는 정보성 세로형 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/shorts/ziiO01behIo",
+    id: "kFz9B1sNNBw",
+    title: "빠른 템포의 쇼츠 영상",
+    description: "대본만 전달 받아 나레이션 부터 모두 제작한 숏폼 영상입니다",
+    youtubeUrl: "https://youtube.com/shorts/kFz9B1sNNBw?feature=share",
     category: "shortform",
     createdAt: 1718300000000
   },
   {
-    id: "o3PqbFV-6fQ",
-    title: "트렌디한 유튜브 템플릿 모음 숏폼",
-    description: "모션 그래픽 템플릿의 예시를 감각적인 음악과 조화시킨 숏폼 영상입니다.",
-    youtubeUrl: "https://www.youtube.com/shorts/o3PqbFV-6fQ",
+    id: "1g4FdRgZPd0",
+    title: "다양한 연출의 숏폼 영상",
+    description: "롱폼에서 주요 장면을 다양한 연출로 제작한 숏폼 영상입니다.",
+    youtubeUrl: "https://youtube.com/shorts/1g4FdRgZPd0?feature=share",
     category: "shortform",
     createdAt: 1718310000000
   }
