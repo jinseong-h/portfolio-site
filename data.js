@@ -151,6 +151,69 @@ const PortfolioData = {
     return true;
   },
 
+  // Update video listing by ID
+  updateVideo(id, videoData) {
+    const all = this.getAllVideos();
+    const idx = all.findIndex(v => v.id === id);
+    if (idx === -1) {
+      throw new Error("영상을 찾을 수 없습니다.");
+    }
+    
+    // Parse YouTube ID
+    const videoId = this.extractYoutubeId(videoData.youtubeUrl);
+    if (!videoId) {
+      throw new Error("올바른 유튜브 링크가 아닙니다.");
+    }
+    
+    all[idx].title = videoData.title || "제목 없음";
+    all[idx].description = videoData.description || "";
+    all[idx].youtubeUrl = videoData.youtubeUrl;
+    all[idx].category = videoData.category || "longform";
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    return all[idx];
+  },
+
+  // Move video up or down within its category
+  moveVideo(id, direction) {
+    const all = this.getAllVideos();
+    const targetVideo = all.find(v => v.id === id);
+    if (!targetVideo) return;
+    
+    const category = targetVideo.category;
+    // Get all videos in this category in their current order
+    const catVideos = all.filter(v => v.category === category);
+    const targetIndex = catVideos.findIndex(v => v.id === id);
+    
+    if (direction === 'up') {
+      if (targetIndex > 0) {
+        // Swap with the previous video in the category
+        const temp = catVideos[targetIndex];
+        catVideos[targetIndex] = catVideos[targetIndex - 1];
+        catVideos[targetIndex - 1] = temp;
+      }
+    } else if (direction === 'down') {
+      if (targetIndex < catVideos.length - 1) {
+        // Swap with the next video in the category
+        const temp = catVideos[targetIndex];
+        catVideos[targetIndex] = catVideos[targetIndex + 1];
+        catVideos[targetIndex + 1] = temp;
+      }
+    }
+    
+    // Rebuild the full list preserving original slots of this category
+    let catPtr = 0;
+    const updatedAll = all.map(v => {
+      if (v.category === category) {
+        return catVideos[catPtr++];
+      }
+      return v;
+    });
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAll));
+    return updatedAll;
+  },
+
   // Parse YouTube video ID from various formats
   // Supported formats:
   // - https://www.youtube.com/watch?v=VIDEO_ID

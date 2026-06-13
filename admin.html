@@ -90,7 +90,8 @@
               <textarea id="video-description" class="form-control" placeholder="영상의 컷 편집 기법, 색보정 톤앤매너 등 포인트를 간결하게 적어주세요."></textarea>
             </div>
             
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--spacing-sm);">포트폴리오 추가</button>
+            <button type="submit" id="btn-submit-form" class="btn btn-primary" style="width: 100%; margin-top: var(--spacing-sm);">포트폴리오 추가</button>
+            <button type="button" id="btn-cancel-edit" class="btn btn-secondary hidden" style="width: 100%; margin-top: var(--spacing-xs);">수정 취소</button>
           </form>
         </aside>
 
@@ -113,8 +114,8 @@
                 <th style="width: 80px;">구분</th>
                 <th>제목</th>
                 <th style="width: 150px;">동영상 ID</th>
-                <th style="width: 100px;">등록일</th>
-                <th style="width: 80px; text-align: center;">작업</th>
+                <th style="width: 110px; text-align: center;">순서 조정</th>
+                <th style="width: 140px; text-align: center;">작업</th>
               </tr>
             </thead>
             <tbody id="video-list-tbody">
@@ -146,10 +147,13 @@
     const btnLogout = document.getElementById('btn-logout');
     
     const uploadForm = document.getElementById('upload-form');
+    const sidebarTitle = document.querySelector('.admin-sidebar h3');
     const videoTitle = document.getElementById('video-title');
     const videoUrl = document.getElementById('video-url');
     const videoCategory = document.getElementById('video-category');
     const videoDescription = document.getElementById('video-description');
+    const btnSubmitForm = document.getElementById('btn-submit-form');
+    const btnCancelEdit = document.getElementById('btn-cancel-edit');
     
     const tbody = document.getElementById('video-list-tbody');
     const toast = document.getElementById('toast-message');
@@ -159,6 +163,9 @@
     const tabLong = document.getElementById('tab-long');
     const tabShort = document.getElementById('tab-short');
     let currentFilter = 'all';
+    
+    // Edit state
+    let editingVideoId = null;
 
     // 1. Authorization flow
     function checkAuth() {
@@ -210,7 +217,8 @@
       tbody.innerHTML = "";
       
       try {
-        let videos = PortfolioData.getAllVideos();
+        const allVideos = PortfolioData.getAllVideos();
+        let videos = [...allVideos];
         
         // Filter by tab
         if (currentFilter === 'long') {
@@ -226,11 +234,12 @@
 
         tbody.innerHTML = videos.map(video => {
           const videoId = PortfolioData.extractYoutubeId(video.youtubeUrl) || "알 수 없음";
-          const dateStr = new Date(video.createdAt).toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          });
+          
+          // Calculate if first/last in its category
+          const catVideos = allVideos.filter(v => v.category === video.category);
+          const catIndex = catVideos.findIndex(v => v.id === video.id);
+          const isFirst = (catIndex === 0);
+          const isLast = (catIndex === catVideos.length - 1);
 
           const categoryBadge = video.category === 'longform' 
             ? '<span class="video-tag" style="background-color: var(--color-surface-soft);">롱폼</span>' 
@@ -241,8 +250,12 @@
               <td>${categoryBadge}</td>
               <td style="font-weight: 500; color: var(--color-ink);">${video.title}</td>
               <td><code style="font-family: var(--font-mono); font-size: 0.8rem; background-color: var(--color-surface-soft); padding: 2px 4px; border-radius: var(--rounded-xs);">${videoId}</code></td>
-              <td>${dateStr}</td>
-              <td style="text-align: center;">
+              <td style="text-align: center; white-space: nowrap;">
+                <button class="btn btn-secondary btn-sm btn-move-up" data-id="${video.id}" ${isFirst ? 'disabled style="opacity: 0.35; cursor: not-allowed;"' : ''}>▲</button>
+                <button class="btn btn-secondary btn-sm btn-move-down" data-id="${video.id}" ${isLast ? 'disabled style="opacity: 0.35; cursor: not-allowed;"' : ''}>▼</button>
+              </td>
+              <td style="text-align: center; white-space: nowrap;">
+                <button class="btn btn-secondary btn-sm btn-edit" data-id="${video.id}" style="margin-right: 4px;">수정</button>
                 <button class="btn btn-danger btn-sm btn-delete" data-id="${video.id}">삭제</button>
               </td>
             </tr>
@@ -257,9 +270,58 @@
             
             if (confirm(`'${title}' 영상을 포트폴리오에서 삭제하시겠습니까?`)) {
               PortfolioData.deleteVideo(id);
+              if (editingVideoId === id) {
+                resetFormState();
+              }
               loadVideoTable();
               showToast("영상이 삭제되었습니다.");
             }
+          });
+        });
+
+        // Bind edit events
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-id');
+            const video = allVideos.find(v => v.id === id);
+            if (!video) return;
+            
+            // Set edit state
+            editingVideoId = id;
+            videoTitle.value = video.title;
+            videoUrl.value = video.youtubeUrl;
+            videoCategory.value = video.category;
+            videoDescription.value = video.description || "";
+            
+            // Update UI
+            sidebarTitle.textContent = "작업물 정보 수정";
+            btnSubmitForm.textContent = "수정 완료";
+            btnCancelEdit.classList.remove('hidden');
+            
+            // Scroll to form on mobile
+            document.querySelector('.admin-sidebar').scrollIntoView({ behavior: 'smooth' });
+          });
+        });
+
+        // Bind move up events
+        document.querySelectorAll('.btn-move-up').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            if (btn.disabled) return;
+            const id = btn.getAttribute('data-id');
+            PortfolioData.moveVideo(id, 'up');
+            loadVideoTable();
+            showToast("영상의 노출 순서가 한 칸 위로 이동했습니다.");
+          });
+        });
+
+        // Bind move down events
+        document.querySelectorAll('.btn-move-down').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            if (btn.disabled) return;
+            const id = btn.getAttribute('data-id');
+            PortfolioData.moveVideo(id, 'down');
+            loadVideoTable();
+            showToast("영상의 노출 순서가 한 칸 아래로 이동했습니다.");
           });
         });
 
@@ -268,7 +330,7 @@
       }
     }
 
-    // 4. Handle video creation
+    // 4. Handle video creation and editing
     uploadForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -280,21 +342,44 @@
       if (!title || !url) return;
 
       try {
-        PortfolioData.addVideo({
-          title,
-          youtubeUrl: url,
-          category,
-          description
-        });
-
-        // Reset form
-        uploadForm.reset();
-        loadVideoTable();
-        showToast("포트폴리오가 추가되었습니다!");
+        if (editingVideoId) {
+          PortfolioData.updateVideo(editingVideoId, {
+            title,
+            youtubeUrl: url,
+            category,
+            description
+          });
+          resetFormState();
+          loadVideoTable();
+          showToast("성공적으로 수정되었습니다!");
+        } else {
+          PortfolioData.addVideo({
+            title,
+            youtubeUrl: url,
+            category,
+            description
+          });
+          uploadForm.reset();
+          loadVideoTable();
+          showToast("포트폴리오가 추가되었습니다!");
+        }
       } catch (err) {
         alert(err.message || "작업 도중 오류가 발생했습니다.");
       }
     });
+
+    // Cancel edit click
+    btnCancelEdit.addEventListener('click', () => {
+      resetFormState();
+    });
+
+    function resetFormState() {
+      editingVideoId = null;
+      uploadForm.reset();
+      sidebarTitle.textContent = "신규 작업물 등록";
+      btnSubmitForm.textContent = "포트폴리오 추가";
+      btnCancelEdit.classList.add('hidden');
+    }
 
     // 5. Tab listeners
     tabAll.addEventListener('click', () => {
