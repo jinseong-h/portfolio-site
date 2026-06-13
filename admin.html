@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포트폴리오 관리자 Dashboard | Editor Jinseong</title>
+  <link rel="stylesheet" href="index.css">
+  <style>
+    /* Admin specific temporary utility */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="header-nav" id="main-header">
+    <div class="container">
+      <a href="index.html" class="logo" id="header-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        Editor Jinseong
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Home</a></li>
+        <li><a href="longform.html" class="nav-link">롱폼 작업물</a></li>
+        <li><a href="shortform.html" class="nav-link">숏폼 작업물</a></li>
+        <li><a href="pricing.html" class="nav-link">제작 비용</a></li>
+        <li><button id="btn-logout" class="btn btn-secondary btn-sm">로그아웃</button></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 40px var(--spacing-lg);">
+    
+    <!-- 1. Password Protection Screen -->
+    <div id="login-screen" class="login-card">
+      <h2>관리자 로그인</h2>
+      <p>포트폴리오 관리를 위해 비밀번호를 입력해 주세요.</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="admin-password">비밀번호</label>
+          <input type="password" id="admin-password" class="form-control" placeholder="비밀번호 입력" required autofocus>
+          <span id="login-error-msg" style="color: var(--color-error); font-size: 0.8rem; margin-top: 4px; display: none;">비밀번호가 올바르지 않습니다.</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">로그인</button>
+      </form>
+    </div>
+
+    <!-- 2. Admin Main Panel -->
+    <div id="admin-panel" class="hidden">
+      <div class="admin-header-row" style="margin-bottom: var(--spacing-xl); border-bottom: 1px solid var(--color-hairline); padding-bottom: var(--spacing-md);">
+        <div>
+          <h1 style="font-size: 2rem; font-family: var(--font-body); font-weight: 700;">포트폴리오 업로드 및 관리</h1>
+          <p class="muted-text">유튜브 영상 링크를 입력하여 롱폼과 숏폼 포트폴리오를 관리합니다.</p>
+        </div>
+      </div>
+
+      <div class="admin-container">
+        
+        <!-- Sidebar Upload Form -->
+        <aside class="admin-sidebar">
+          <h3>신규 작업물 등록</h3>
+          <form id="upload-form">
+            <div class="form-group">
+              <label for="video-title">영상 제목</label>
+              <input type="text" id="video-title" class="form-control" placeholder="예: 시네마틱 여행 브이로그" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="video-url">유튜브 영상 주소</label>
+              <input type="url" id="video-url" class="form-control" placeholder="예: https://youtu.be/... 또는 watch?v=" required>
+              <p style="font-size: 0.75rem; color: var(--color-muted); margin-top: 4px;">
+                일반 유튜브 영상 링크 또는 쇼츠(Shorts) 주소를 그대로 붙여넣으세요.
+              </p>
+            </div>
+            
+            <div class="form-group">
+              <label for="video-category">카테고리 구분</label>
+              <select id="video-category" class="form-control" style="background-image: none;" required>
+                <option value="longform">롱폼 (가로형 16:9)</option>
+                <option value="shortform">숏폼 (세로형 9:16)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="video-description">상세 설명 (선택)</label>
+              <textarea id="video-description" class="form-control" placeholder="영상의 컷 편집 기법, 색보정 톤앤매너 등 포인트를 간결하게 적어주세요."></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--spacing-sm);">포트폴리오 추가</button>
+          </form>
+        </aside>
+
+        <!-- Main Video Management Area -->
+        <section class="admin-main">
+          <div class="admin-header-row">
+            <h3 style="font-family: var(--font-body); font-weight: 600; font-size: 1.2rem; margin: 0;">등록된 작업물 목록</h3>
+            
+            <!-- Category Tab Filter -->
+            <div class="tab-filter">
+              <button class="tab-btn active" id="tab-all">전체</button>
+              <button class="tab-btn" id="tab-long">롱폼</button>
+              <button class="tab-btn" id="tab-short">숏폼</button>
+            </div>
+          </div>
+
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">구분</th>
+                <th>제목</th>
+                <th style="width: 150px;">동영상 ID</th>
+                <th style="width: 100px;">등록일</th>
+                <th style="width: 80px; text-align: center;">작업</th>
+              </tr>
+            </thead>
+            <tbody id="video-list-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast-message" class="toast">성공적으로 처리되었습니다.</div>
+
+  <!-- Data Script -->
+  <script src="data.js"></script>
+  <script>
+    // Constants
+    const SESSION_AUTH_KEY = "jinseong_portfolio_authorized";
+    const DEFAULT_PASS = "editorjs"; // Default password for editing the portfolio
+
+    // UI Elements
+    const loginScreen = document.getElementById('login-screen');
+    const adminPanel = document.getElementById('admin-panel');
+    const loginForm = document.getElementById('login-form');
+    const passwordInput = document.getElementById('admin-password');
+    const errorMsg = document.getElementById('login-error-msg');
+    const btnLogout = document.getElementById('btn-logout');
+    
+    const uploadForm = document.getElementById('upload-form');
+    const videoTitle = document.getElementById('video-title');
+    const videoUrl = document.getElementById('video-url');
+    const videoCategory = document.getElementById('video-category');
+    const videoDescription = document.getElementById('video-description');
+    
+    const tbody = document.getElementById('video-list-tbody');
+    const toast = document.getElementById('toast-message');
+    
+    // Tab filters
+    const tabAll = document.getElementById('tab-all');
+    const tabLong = document.getElementById('tab-long');
+    const tabShort = document.getElementById('tab-short');
+    let currentFilter = 'all';
+
+    // 1. Authorization flow
+    function checkAuth() {
+      const isAuth = sessionStorage.getItem(SESSION_AUTH_KEY);
+      if (isAuth === "true") {
+        loginScreen.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        btnLogout.classList.remove('hidden');
+        loadVideoTable();
+      } else {
+        loginScreen.classList.remove('hidden');
+        adminPanel.classList.add('hidden');
+        btnLogout.classList.add('hidden');
+      }
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (passwordInput.value === DEFAULT_PASS) {
+        sessionStorage.setItem(SESSION_AUTH_KEY, "true");
+        errorMsg.style.display = "none";
+        passwordInput.value = "";
+        checkAuth();
+        showToast("성공적으로 로그인되었습니다.");
+      } else {
+        errorMsg.style.display = "block";
+        passwordInput.focus();
+        passwordInput.select();
+      }
+    });
+
+    btnLogout.addEventListener('click', () => {
+      sessionStorage.removeItem(SESSION_AUTH_KEY);
+      checkAuth();
+      showToast("로그아웃 되었습니다.");
+    });
+
+    // 2. Toast UI helper
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // 3. Render video list table
+    function loadVideoTable() {
+      tbody.innerHTML = "";
+      
+      try {
+        let videos = PortfolioData.getAllVideos();
+        
+        // Filter by tab
+        if (currentFilter === 'long') {
+          videos = videos.filter(v => v.category === 'longform');
+        } else if (currentFilter === 'short') {
+          videos = videos.filter(v => v.category === 'shortform');
+        }
+
+        if (videos.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">등록된 영상이 없습니다.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = videos.map(video => {
+          const videoId = PortfolioData.extractYoutubeId(video.youtubeUrl) || "알 수 없음";
+          const dateStr = new Date(video.createdAt).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+
+          const categoryBadge = video.category === 'longform' 
+            ? '<span class="video-tag" style="background-color: var(--color-surface-soft);">롱폼</span>' 
+            : '<span class="video-tag" style="background-color: rgba(204,120,92,0.1); color: var(--color-primary);">숏폼</span>';
+
+          return `
+            <tr>
+              <td>${categoryBadge}</td>
+              <td style="font-weight: 500; color: var(--color-ink);">${video.title}</td>
+              <td><code style="font-family: var(--font-mono); font-size: 0.8rem; background-color: var(--color-surface-soft); padding: 2px 4px; border-radius: var(--rounded-xs);">${videoId}</code></td>
+              <td>${dateStr}</td>
+              <td style="text-align: center;">
+                <button class="btn btn-danger btn-sm btn-delete" data-id="${video.id}">삭제</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Bind delete events
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            const title = e.target.closest('tr').querySelector('td:nth-child(2)').textContent;
+            
+            if (confirm(`'${title}' 영상을 포트폴리오에서 삭제하시겠습니까?`)) {
+              PortfolioData.deleteVideo(id);
+              loadVideoTable();
+              showToast("영상이 삭제되었습니다.");
+            }
+          });
+        });
+
+      } catch (err) {
+        console.error("Failed to load table", err);
+      }
+    }
+
+    // 4. Handle video creation
+    uploadForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const title = videoTitle.value.trim();
+      const url = videoUrl.value.trim();
+      const category = videoCategory.value;
+      const description = videoDescription.value.trim();
+
+      if (!title || !url) return;
+
+      try {
+        PortfolioData.addVideo({
+          title,
+          youtubeUrl: url,
+          category,
+          description
+        });
+
+        // Reset form
+        uploadForm.reset();
+        loadVideoTable();
+        showToast("포트폴리오가 추가되었습니다!");
+      } catch (err) {
+        alert(err.message || "작업 도중 오류가 발생했습니다.");
+      }
+    });
+
+    // 5. Tab listeners
+    tabAll.addEventListener('click', () => {
+      setActiveTab(tabAll, 'all');
+    });
+    tabLong.addEventListener('click', () => {
+      setActiveTab(tabLong, 'long');
+    });
+    tabShort.addEventListener('click', () => {
+      setActiveTab(tabShort, 'short');
+    });
+
+    function setActiveTab(activeElement, filterName) {
+      [tabAll, tabLong, tabShort].forEach(btn => btn.classList.remove('active'));
+      activeElement.classList.add('active');
+      currentFilter = filterName;
+      loadVideoTable();
+    }
+
+    // Init
+    document.addEventListener("DOMContentLoaded", () => {
+      checkAuth();
+    });
+  </script>
+</body>
+</html>

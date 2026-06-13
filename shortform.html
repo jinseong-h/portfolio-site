@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>숏폼 작업물 | 영상 편집자 진성</title>
+  <meta name="description" content="유튜브 쇼츠, 인스타그램 릴스 등 빠른 템포와 1분 미만의 강렬한 세로형 숏폼 영상 편집 포트폴리오입니다.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="숏폼 작업물 | 영상 편집자 진성">
+  <meta property="og:description" content="고해상도 세로형 숏폼 영상 편집물. 1분 미만 임팩트 있는 전환과 편집 스타일을 확인해 보세요.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1622737133809-d95047b9e673?auto=format&fit=crop&w=1200&q=80">
+  
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="header-nav" id="main-header">
+    <div class="container">
+      <a href="index.html" class="logo" id="header-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        Editor Jinseong
+      </a>
+      <button class="hamburger" id="nav-toggle" aria-label="메뉴 열기">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-links" id="nav-menu">
+        <li><a href="index.html" class="nav-link" id="nav-home">Home</a></li>
+        <li><a href="longform.html" class="nav-link" id="nav-longform">롱폼 작업물</a></li>
+        <li><a href="shortform.html" class="nav-link active" id="nav-shortform">숏폼 작업물</a></li>
+        <li><a href="pricing.html" class="nav-link" id="nav-pricing">제작 비용</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Content Section -->
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="section-title">
+          <h2>숏폼 작업물</h2>
+          <p>모바일 시청환경에 최적화된 9:16 비율의 세로형 숏폼 포트폴리오입니다.</p>
+        </div>
+
+        <div class="video-grid shorts-grid" id="video-grid">
+          <!-- Dynamically populated by JS -->
+          <div style="grid-column: 1/-1; text-align: center; padding: 48px;">
+            <p class="muted-text">작업물을 불러오고 있습니다...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        Editor Jinseong
+      </div>
+      <div class="copyright">
+        &copy; 2026 Editor Jinseong. All Rights Reserved. | <a href="admin.html" style="text-decoration: underline; color: var(--color-on-dark-soft);">Admin Dashboard</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Data & Binding script -->
+  <script src="data.js"></script>
+  <script>
+    // Toggle responsive mobile navigation menu
+    const navToggle = document.getElementById('nav-toggle');
+    const navMenu = document.getElementById('nav-menu');
+
+    navToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('show');
+      navToggle.classList.toggle('active');
+    });
+
+    // Load and render short-form videos
+    document.addEventListener("DOMContentLoaded", () => {
+      const videoGrid = document.getElementById('video-grid');
+      
+      try {
+        const videos = PortfolioData.getVideosByCategory('shortform');
+        
+        if (videos.length === 0) {
+          videoGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 96px var(--spacing-lg); background-color: var(--color-surface-card); border-radius: var(--rounded-lg); border: 1px dashed var(--color-hairline);">
+              <p style="font-size: 1.1rem; color: var(--color-muted); margin-bottom: var(--spacing-md);">등록된 숏폼 작업물이 없습니다.</p>
+              <a href="admin.html" class="btn btn-primary btn-sm">작업물 등록하러 가기</a>
+            </div>
+          `;
+          return;
+        }
+
+        videoGrid.innerHTML = videos.map(video => {
+          const embedUrl = PortfolioData.getEmbedUrl(video.youtubeUrl);
+          
+          if (!embedUrl) {
+            return ''; // Skip invalid embeds
+          }
+          
+          return `
+            <article class="video-card">
+              <div class="video-wrapper portrait">
+                <iframe src="${embedUrl}" 
+                        title="${video.title}" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen 
+                        loading="lazy"
+                        referrerpolicy="strict-origin-when-cross-origin">
+                </iframe>
+              </div>
+              <div class="video-info">
+                <div>
+                  <h3 style="font-size: 0.95rem; margin-bottom: 4px;">${video.title}</h3>
+                  <p style="font-size: 0.8rem; margin-bottom: var(--spacing-xs);">${video.description || '상세 내용이 없습니다.'}</p>
+                </div>
+                <span class="video-tag" style="background-color: rgba(204, 120, 92, 0.1); color: var(--color-primary);">Shorts</span>
+              </div>
+            </article>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error("Error loading short-form videos:", err);
+        videoGrid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--color-error);">
+            데이터를 불러오는 중 오류가 발생했습니다.
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
