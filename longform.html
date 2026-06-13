@@ -86,11 +86,11 @@
     });
 
     // Load and render long-form videos
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const videoGrid = document.getElementById('video-grid');
       
       try {
-        const videos = PortfolioData.getVideosByCategory('longform');
+        const videos = await PortfolioData.getVideosByCategory('longform');
         
         if (videos.length === 0) {
           videoGrid.innerHTML = `

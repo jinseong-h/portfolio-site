@@ -1,5 +1,5 @@
 // Default works extracted from the user's old portfolio.
-// We split them logically into Long-form and Short-form categories to populate the portfolio initially.
+// We keep this as a local fallback in case Supabase API fails.
 const DEFAULT_VIDEOS = [
   {
     id: "hU8pjV_jhOc",
@@ -44,7 +44,7 @@ const DEFAULT_VIDEOS = [
   {
     id: "I--gsPN3pc4",
     title: "빠른 템포의 영상 제작",
-    "description": "다양한 효과와 빠른 템포로 집중력을 가져오는 스타일의 영상 제작입니다.",
+    description: "다양한 효과와 빠른 템포로 집중력을 가져오는 스타일의 영상 제작입니다.",
     youtubeUrl: "https://www.youtube.com/watch?v=I--gsPN3pc4",
     category: "longform",
     createdAt: 1718260000000
@@ -91,44 +91,61 @@ const DEFAULT_VIDEOS = [
   }
 ];
 
-// LocalStorage key name
-const STORAGE_KEY = "jinseong_portfolio_videos";
+// Supabase API Credentials
+const SUPABASE_URL = "https://zyqqbwzdxunbngehdoqi.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5cXFid3pkeHVuYm5nZWhkb3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU1NjAsImV4cCI6MjA5NjkyMTU2MH0.Cry86TJ7FkoQpS_hmJgYZ4S7H8XkNsDaqbt4KI4UFqA";
 
 const PortfolioData = {
-  // Initialize videos in localStorage if empty, then return all videos
-  getAllVideos() {
-    let videos = localStorage.getItem(STORAGE_KEY);
-    if (!videos) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VIDEOS));
-      return DEFAULT_VIDEOS;
+  // Asynchronous fetch wrapper for Supabase REST API
+  async _fetch(path, options = {}) {
+    const headers = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      ...options.headers
+    };
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...options, headers });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Supabase error: ${errText || response.statusText}`);
     }
+    if (options.method === "DELETE") return true;
     try {
-      return JSON.parse(videos);
+      return await response.json();
+    } catch(e) {
+      return null;
+    }
+  },
+
+  // Fetch all videos from Supabase, ordered by createdAt descending
+  async getAllVideos() {
+    try {
+      const videos = await this._fetch("videos?select=*&order=createdAt.desc");
+      if (videos && Array.isArray(videos)) {
+        return videos;
+      }
+      return DEFAULT_VIDEOS;
     } catch (e) {
-      console.error("Failed to parse stored videos. Resetting to default.", e);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VIDEOS));
+      console.warn("Failed to fetch from Supabase. Falling back to default list.", e);
       return DEFAULT_VIDEOS;
     }
   },
 
   // Get filtered videos by category
-  getVideosByCategory(category) {
-    const all = this.getAllVideos();
+  async getVideosByCategory(category) {
+    const all = await this.getAllVideos();
     return all.filter(v => v.category === category);
   },
 
   // Save new video listing
-  addVideo(videoData) {
-    const all = this.getAllVideos();
-    
-    // Parse YouTube ID
+  async addVideo(videoData) {
     const videoId = this.extractYoutubeId(videoData.youtubeUrl);
     if (!videoId) {
       throw new Error("올바른 유튜브 링크가 아닙니다.");
     }
     
     const newVideo = {
-      id: videoId + "_" + Date.now(), // Unique ID
+      id: videoId + "_" + Date.now(),
       title: videoData.title || "제목 없음",
       description: videoData.description || "",
       youtubeUrl: videoData.youtubeUrl,
@@ -136,134 +153,113 @@ const PortfolioData = {
       createdAt: Date.now()
     };
     
-    all.unshift(newVideo); // Add to the beginning
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    await this._fetch("videos", {
+      method: "POST",
+      body: JSON.stringify(newVideo)
+    });
     return newVideo;
   },
 
   // Delete video listing by ID
-  deleteVideo(id) {
-    let all = this.getAllVideos();
-    all = all.filter(v => v.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  async deleteVideo(id) {
+    await this._fetch(`videos?id=eq.${id}`, {
+      method: "DELETE"
+    });
     return true;
   },
 
   // Update video listing by ID
-  updateVideo(id, videoData) {
-    const all = this.getAllVideos();
-    const idx = all.findIndex(v => v.id === id);
-    if (idx === -1) {
-      throw new Error("영상을 찾을 수 없습니다.");
-    }
-    
-    // Parse YouTube ID
+  async updateVideo(id, videoData) {
     const videoId = this.extractYoutubeId(videoData.youtubeUrl);
     if (!videoId) {
       throw new Error("올바른 유튜브 링크가 아닙니다.");
     }
     
-    all[idx].title = videoData.title || "제목 없음";
-    all[idx].description = videoData.description || "";
-    all[idx].youtubeUrl = videoData.youtubeUrl;
-    all[idx].category = videoData.category || "longform";
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-    return all[idx];
+    const updated = {
+      title: videoData.title || "제목 없음",
+      description: videoData.description || "",
+      youtubeUrl: videoData.youtubeUrl,
+      category: videoData.category || "longform"
+    };
+
+    await this._fetch(`videos?id=eq.${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updated)
+    });
+    return true;
   },
 
-  // Move video up or down within its category
-  moveVideo(id, direction) {
-    const all = this.getAllVideos();
+  // Swap position of video
+  async moveVideo(id, direction) {
+    const all = await this.getAllVideos();
     const targetVideo = all.find(v => v.id === id);
     if (!targetVideo) return;
     
     const category = targetVideo.category;
-    // Get all videos in this category in their current order
+    // Get all videos in this category in their current sorted (DESC) order
     const catVideos = all.filter(v => v.category === category);
     const targetIndex = catVideos.findIndex(v => v.id === id);
     
-    if (direction === 'up') {
-      if (targetIndex > 0) {
-        // Swap with the previous video in the category
-        const temp = catVideos[targetIndex];
-        catVideos[targetIndex] = catVideos[targetIndex - 1];
-        catVideos[targetIndex - 1] = temp;
-      }
-    } else if (direction === 'down') {
-      if (targetIndex < catVideos.length - 1) {
-        // Swap with the next video in the category
-        const temp = catVideos[targetIndex];
-        catVideos[targetIndex] = catVideos[targetIndex + 1];
-        catVideos[targetIndex + 1] = temp;
-      }
+    let swapIndex = -1;
+    if (direction === 'up' && targetIndex > 0) {
+      swapIndex = targetIndex - 1;
+    } else if (direction === 'down' && targetIndex < catVideos.length - 1) {
+      swapIndex = targetIndex + 1;
     }
     
-    // Rebuild the full list preserving original slots of this category
-    let catPtr = 0;
-    const updatedAll = all.map(v => {
-      if (v.category === category) {
-        return catVideos[catPtr++];
-      }
-      return v;
-    });
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAll));
-    return updatedAll;
+    if (swapIndex !== -1) {
+      const videoA = catVideos[targetIndex];
+      const videoB = catVideos[swapIndex];
+      
+      const timeA = videoA.createdAt;
+      const timeB = videoB.createdAt;
+      
+      // Update videoA's createdAt in DB
+      await this._fetch(`videos?id=eq.${videoA.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ createdAt: timeB })
+      });
+      
+      // Update videoB's createdAt in DB
+      await this._fetch(`videos?id=eq.${videoB.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ createdAt: timeA })
+      });
+    }
+    return true;
   },
 
   // Parse YouTube video ID from various formats
-  // Supported formats:
-  // - https://www.youtube.com/watch?v=VIDEO_ID
-  // - https://youtu.be/VIDEO_ID
-  // - https://youtube.com/shorts/VIDEO_ID
-  // - https://www.youtube.com/embed/VIDEO_ID
   extractYoutubeId(url) {
     if (!url) return null;
-    
-    // Trim spaces
     url = url.trim();
-    
-    // Try native URL parsing first for clean params
     try {
       const urlObj = new URL(url);
-      
-      // youtu.be/VIDEO_ID
       if (urlObj.hostname === 'youtu.be') {
         const id = urlObj.pathname.substring(1).split(/[?#]/)[0];
         if (id.length === 11) return id;
       }
-      
-      // shorts/VIDEO_ID
       if (urlObj.pathname.includes('/shorts/')) {
         const parts = urlObj.pathname.split('/shorts/');
         const id = parts[1].split(/[?#]/)[0];
         if (id.length === 11) return id;
       }
-      
-      // embed/VIDEO_ID
       if (urlObj.pathname.includes('/embed/')) {
         const parts = urlObj.pathname.split('/embed/');
         const id = parts[1].split(/[?#]/)[0];
         if (id.length === 11) return id;
       }
-      
-      // watch?v=VIDEO_ID
       const vParam = urlObj.searchParams.get('v');
       if (vParam && vParam.length === 11) {
         return vParam;
       }
-    } catch (e) {
-      // Fallback to regex if URL parsing fails (e.g. invalid protocol)
-    }
+    } catch (e) {}
 
-    // Regexp fallback
     let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]{11})/;
     let match = url.match(regExp);
     if (match && match[2] && match[2].length === 11) {
       return match[2];
     }
-    
     return null;
   },
 

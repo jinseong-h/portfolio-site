@@ -86,11 +86,11 @@
     });
 
     // Load and render short-form videos
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const videoGrid = document.getElementById('video-grid');
       
       try {
-        const videos = PortfolioData.getVideosByCategory('shortform');
+        const videos = await PortfolioData.getVideosByCategory('shortform');
         
         if (videos.length === 0) {
           videoGrid.innerHTML = `

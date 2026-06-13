@@ -184,13 +184,13 @@
     let editingVideoId = null;
 
     // 1. Authorization flow
-    function checkAuth() {
+    async function checkAuth() {
       const isAuth = sessionStorage.getItem(SESSION_AUTH_KEY);
       if (isAuth === "true") {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         btnLogout.classList.remove('hidden');
-        loadVideoTable();
+        await loadVideoTable();
       } else {
         loginScreen.classList.remove('hidden');
         adminPanel.classList.add('hidden');
@@ -198,13 +198,13 @@
       }
     }
 
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (passwordInput.value === DEFAULT_PASS) {
         sessionStorage.setItem(SESSION_AUTH_KEY, "true");
         errorMsg.style.display = "none";
         passwordInput.value = "";
-        checkAuth();
+        await checkAuth();
         showToast("성공적으로 로그인되었습니다.");
       } else {
         errorMsg.style.display = "block";
@@ -213,9 +213,9 @@
       }
     });
 
-    btnLogout.addEventListener('click', () => {
+    btnLogout.addEventListener('click', async () => {
       sessionStorage.removeItem(SESSION_AUTH_KEY);
-      checkAuth();
+      await checkAuth();
       showToast("로그아웃 되었습니다.");
     });
 
@@ -229,11 +229,11 @@
     }
 
     // 3. Render video list table
-    function loadVideoTable() {
-      tbody.innerHTML = "";
+    async function loadVideoTable() {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">불러오는 중...</td></tr>`;
       
       try {
-        const allVideos = PortfolioData.getAllVideos();
+        const allVideos = await PortfolioData.getAllVideos();
         let videos = [...allVideos];
         
         // Filter by tab
@@ -280,16 +280,17 @@
 
         // Bind delete events
         document.querySelectorAll('.btn-delete').forEach(btn => {
-          btn.addEventListener('click', (e) => {
+          btn.addEventListener('click', async (e) => {
             const id = e.target.getAttribute('data-id');
             const title = e.target.closest('tr').querySelector('td:nth-child(2)').textContent;
             
             if (confirm(`'${title}' 영상을 포트폴리오에서 삭제하시겠습니까?`)) {
-              PortfolioData.deleteVideo(id);
+              tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">삭제 중...</td></tr>`;
+              await PortfolioData.deleteVideo(id);
               if (editingVideoId === id) {
                 resetFormState();
               }
-              loadVideoTable();
+              await loadVideoTable();
               showToast("영상이 삭제되었습니다.");
             }
           });
@@ -321,33 +322,36 @@
 
         // Bind move up events
         document.querySelectorAll('.btn-move-up').forEach(btn => {
-          btn.addEventListener('click', (e) => {
+          btn.addEventListener('click', async (e) => {
             if (btn.disabled) return;
             const id = btn.getAttribute('data-id');
-            PortfolioData.moveVideo(id, 'up');
-            loadVideoTable();
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">순서 조정 중...</td></tr>`;
+            await PortfolioData.moveVideo(id, 'up');
+            await loadVideoTable();
             showToast("영상의 노출 순서가 한 칸 위로 이동했습니다.");
           });
         });
 
         // Bind move down events
         document.querySelectorAll('.btn-move-down').forEach(btn => {
-          btn.addEventListener('click', (e) => {
+          btn.addEventListener('click', async (e) => {
             if (btn.disabled) return;
             const id = btn.getAttribute('data-id');
-            PortfolioData.moveVideo(id, 'down');
-            loadVideoTable();
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">순서 조정 중...</td></tr>`;
+            await PortfolioData.moveVideo(id, 'down');
+            await loadVideoTable();
             showToast("영상의 노출 순서가 한 칸 아래로 이동했습니다.");
           });
         });
 
       } catch (err) {
         console.error("Failed to load table", err);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-error);">데이터 로드 오류: ${err.message}</td></tr>`;
       }
     }
 
     // 4. Handle video creation and editing
-    uploadForm.addEventListener('submit', (e) => {
+    uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const title = videoTitle.value.trim();
@@ -357,30 +361,33 @@
 
       if (!title || !url) return;
 
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">저장 중...</td></tr>`;
+
       try {
         if (editingVideoId) {
-          PortfolioData.updateVideo(editingVideoId, {
+          await PortfolioData.updateVideo(editingVideoId, {
             title,
             youtubeUrl: url,
             category,
             description
           });
           resetFormState();
-          loadVideoTable();
+          await loadVideoTable();
           showToast("성공적으로 수정되었습니다!");
         } else {
-          PortfolioData.addVideo({
+          await PortfolioData.addVideo({
             title,
             youtubeUrl: url,
             category,
             description
           });
           uploadForm.reset();
-          loadVideoTable();
+          await loadVideoTable();
           showToast("포트폴리오가 추가되었습니다!");
         }
       } catch (err) {
         alert(err.message || "작업 도중 오류가 발생했습니다.");
+        await loadVideoTable();
       }
     });
 
@@ -398,21 +405,21 @@
     }
 
     // 5. Tab listeners
-    tabAll.addEventListener('click', () => {
-      setActiveTab(tabAll, 'all');
+    tabAll.addEventListener('click', async () => {
+      await setActiveTab(tabAll, 'all');
     });
-    tabLong.addEventListener('click', () => {
-      setActiveTab(tabLong, 'long');
+    tabLong.addEventListener('click', async () => {
+      await setActiveTab(tabLong, 'long');
     });
-    tabShort.addEventListener('click', () => {
-      setActiveTab(tabShort, 'short');
+    tabShort.addEventListener('click', async () => {
+      await setActiveTab(tabShort, 'short');
     });
 
-    function setActiveTab(activeElement, filterName) {
+    async function setActiveTab(activeElement, filterName) {
       [tabAll, tabLong, tabShort].forEach(btn => btn.classList.remove('active'));
       activeElement.classList.add('active');
       currentFilter = filterName;
-      loadVideoTable();
+      await loadVideoTable();
     }
 
     // 6. Backup & Recovery handlers
@@ -420,26 +427,31 @@
     const btnDownloadBackup = document.getElementById('btn-download-backup');
     const inputRestoreBackup = document.getElementById('input-restore-backup');
 
-    btnCopyBackup.addEventListener('click', () => {
-      const videos = PortfolioData.getAllVideos();
-      const jsonStr = JSON.stringify(videos, null, 2);
-      navigator.clipboard.writeText(jsonStr).then(() => {
+    btnCopyBackup.addEventListener('click', async () => {
+      try {
+        const videos = await PortfolioData.getAllVideos();
+        const jsonStr = JSON.stringify(videos, null, 2);
+        await navigator.clipboard.writeText(jsonStr);
         showToast("데이터가 클립보드에 복사되었습니다! 채팅에 붙여넣어 주세요.");
-      }).catch(err => {
-        alert("복사 실패: " + err);
-      });
+      } catch (err) {
+        alert("데이터를 가져오는 도중 오류가 발생했습니다: " + err.message);
+      }
     });
 
-    btnDownloadBackup.addEventListener('click', () => {
-      const videos = PortfolioData.getAllVideos();
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(videos, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "jinseong_portfolio_backup.json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast("백업 파일이 다운로드되었습니다.");
+    btnDownloadBackup.addEventListener('click', async () => {
+      try {
+        const videos = await PortfolioData.getAllVideos();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(videos, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "jinseong_portfolio_backup.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast("백업 파일이 다운로드되었습니다.");
+      } catch (err) {
+        alert("데이터를 가져오는 도중 오류가 발생했습니다: " + err.message);
+      }
     });
 
     inputRestoreBackup.addEventListener('change', (e) => {
@@ -447,32 +459,52 @@
       if (!file) return;
       
       const reader = new FileReader();
-      reader.onload = function(evt) {
+      reader.onload = async function(evt) {
         try {
           const imported = JSON.parse(evt.target.result);
           if (Array.isArray(imported)) {
             const isValid = imported.every(v => v.youtubeUrl && v.title && v.category);
             if (isValid) {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
-              loadVideoTable();
-              showToast("데이터가 성공적으로 복구되었습니다!");
-              inputRestoreBackup.value = "";
+              if (confirm("경고: 백업 파일을 복구하면 현재 데이터베이스에 저장된 모든 영상이 지워지고 백업 파일 내용으로 대체됩니다. 진행하시겠습니까?")) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">복구 중... 기존 데이터 삭제 및 업로드 중입니다.</td></tr>`;
+                
+                // 1. Delete all current videos in Supabase
+                const currentVideos = await PortfolioData.getAllVideos();
+                for (let cv of currentVideos) {
+                  await PortfolioData.deleteVideo(cv.id);
+                }
+                
+                // 2. Add all new videos to Supabase
+                // Reverse loop because addVideo uses unshift (adds to the beginning)
+                // To preserve original sequence, we add them starting from the bottom of the list
+                const reversedImported = [...imported].reverse();
+                for (let nv of reversedImported) {
+                  await PortfolioData.addVideo(nv);
+                }
+                
+                await loadVideoTable();
+                showToast("데이터가 클라우드에 성공적으로 복구되었습니다!");
+                inputRestoreBackup.value = "";
+              }
             } else {
               alert("올바른 포트폴리오 백업 파일 형식이 아닙니다.");
+              await loadVideoTable();
             }
           } else {
             alert("올바른 포트폴리오 백업 파일 형식이 아닙니다.");
+            await loadVideoTable();
           }
         } catch (err) {
-          alert("파일을 읽는 도중 오류가 발생했습니다: " + err.message);
+          alert("파일을 복구하는 도중 오류가 발생했습니다: " + err.message);
+          await loadVideoTable();
         }
       };
       reader.readAsText(file);
     });
 
     // Init
-    document.addEventListener("DOMContentLoaded", () => {
-      checkAuth();
+    document.addEventListener("DOMContentLoaded", async () => {
+      await checkAuth();
     });
   </script>
 </body>
