@@ -58,6 +58,15 @@
         </div>
       </div>
 
+      <!-- Admin Tab Navigation -->
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" id="tab-portfolio" onclick="switchAdminTab('portfolio')">포트폴리오 관리</button>
+        <button class="admin-tab-btn" id="tab-stats" onclick="switchAdminTab('stats')">방문자 통계</button>
+      </div>
+
+      <!-- Tab: Portfolio Management (existing content wrapper) -->
+      <div id="panel-portfolio">
+
       <div class="admin-container">
         
         <!-- Sidebar Upload Form -->
@@ -141,6 +150,54 @@
         </section>
 
       </div>
+      </div> <!-- end panel-portfolio -->
+
+      <!-- Tab: Visitor Statistics -->
+      <div id="panel-stats" class="hidden">
+        <div class="stats-loading" id="stats-loading">
+          <div class="spinner"></div>
+          통계 데이터를 불러오는 중...
+        </div>
+        <div id="stats-content" class="hidden">
+          <!-- Summary Cards -->
+          <div class="stats-cards">
+            <div class="stats-card">
+              <div class="stats-number" id="stat-today">-</div>
+              <div class="stats-label">오늘 방문자</div>
+              <div class="stats-sublabel">일일 고유 방문자</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-number" id="stat-week">-</div>
+              <div class="stats-label">주간 방문자</div>
+              <div class="stats-sublabel">최근 7일 고유 방문자</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-number" id="stat-month">-</div>
+              <div class="stats-label">월간 방문자</div>
+              <div class="stats-sublabel">최근 30일 고유 방문자</div>
+            </div>
+          </div>
+
+          <!-- Two-column stats grid -->
+          <div class="stats-grid">
+            <!-- 7-Day Trend -->
+            <div class="stats-section">
+              <h3 class="stats-section-title">최근 7일 방문 추이</h3>
+              <div class="trend-chart" id="trend-chart">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Page Breakdown -->
+            <div class="stats-section">
+              <h3 class="stats-section-title">페이지별 방문 비율</h3>
+              <div class="page-breakdown" id="page-breakdown">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -202,6 +259,7 @@
       e.preventDefault();
       if (passwordInput.value === DEFAULT_PASS) {
         sessionStorage.setItem(SESSION_AUTH_KEY, "true");
+        localStorage.setItem('jinseong_is_admin', 'true');
         errorMsg.style.display = "none";
         passwordInput.value = "";
         await checkAuth();
@@ -501,6 +559,212 @@
       };
       reader.readAsText(file);
     });
+
+    // ======================================================
+    // 7. VISITOR STATISTICS
+    // ======================================================
+
+    // Tab switching
+    function switchAdminTab(tab) {
+      const tabPortfolio = document.getElementById('tab-portfolio');
+      const tabStats = document.getElementById('tab-stats');
+      const panelPortfolio = document.getElementById('panel-portfolio');
+      const panelStats = document.getElementById('panel-stats');
+
+      if (tab === 'portfolio') {
+        tabPortfolio.classList.add('active');
+        tabStats.classList.remove('active');
+        panelPortfolio.classList.remove('hidden');
+        panelStats.classList.add('hidden');
+      } else if (tab === 'stats') {
+        tabPortfolio.classList.remove('active');
+        tabStats.classList.add('active');
+        panelPortfolio.classList.add('hidden');
+        panelStats.classList.remove('hidden');
+        loadStats();
+      }
+    }
+    // Make it globally accessible for onclick
+    window.switchAdminTab = switchAdminTab;
+
+    // Fetch all visits from last 30 days
+    async function fetchVisitData() {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const isoDate = thirtyDaysAgo.toISOString();
+
+      const response = await PortfolioData._fetch(
+        `page_visits?select=page,visited_at,visitor_id&visited_at=gte.${isoDate}&order=visited_at.desc`
+      );
+      return response || [];
+    }
+
+    // Compute statistics from raw visit data
+    function computeStats(visits) {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      
+      // Helper: get date string from ISO
+      function toDateStr(isoStr) {
+        return new Date(isoStr).toISOString().split('T')[0];
+      }
+
+      // Helper: is within last N days?
+      function isWithinDays(isoStr, n) {
+        var visitDate = new Date(isoStr);
+        var cutoff = new Date(now);
+        cutoff.setDate(cutoff.getDate() - n);
+        cutoff.setHours(0, 0, 0, 0);
+        return visitDate >= cutoff;
+      }
+
+      // 1) Unique visitors today
+      var todayVisitors = new Set();
+      // 2) Unique visitors last 7 days
+      var weekVisitors = new Set();
+      // 3) Unique visitors last 30 days
+      var monthVisitors = new Set();
+      // 4) Page breakdown (30 days)
+      var pageCounts = {};
+      // 5) Daily counts for 7-day trend
+      var dailyCounts = {};
+
+      // Initialize daily counts for last 7 days
+      for (var d = 0; d < 7; d++) {
+        var date = new Date(now);
+        date.setDate(date.getDate() - d);
+        var key = date.toISOString().split('T')[0];
+        dailyCounts[key] = new Set();
+      }
+
+      visits.forEach(function(v) {
+        var dateStr = toDateStr(v.visited_at);
+
+        // Today
+        if (dateStr === todayStr) {
+          todayVisitors.add(v.visitor_id);
+        }
+
+        // Week
+        if (isWithinDays(v.visited_at, 7)) {
+          weekVisitors.add(v.visitor_id);
+        }
+
+        // Month
+        monthVisitors.add(v.visitor_id);
+
+        // Page breakdown
+        if (!pageCounts[v.page]) pageCounts[v.page] = 0;
+        pageCounts[v.page]++;
+
+        // Daily trend
+        if (dailyCounts[dateStr] !== undefined) {
+          dailyCounts[dateStr].add(v.visitor_id);
+        }
+      });
+
+      // Convert sets to counts for daily
+      var dailyData = [];
+      for (var d = 6; d >= 0; d--) {
+        var date = new Date(now);
+        date.setDate(date.getDate() - d);
+        var key = date.toISOString().split('T')[0];
+        dailyData.push({
+          date: key,
+          label: (date.getMonth() + 1) + '/' + date.getDate(),
+          count: dailyCounts[key] ? dailyCounts[key].size : 0
+        });
+      }
+
+      // Page name mapping
+      var pageNames = {
+        'index': '홈',
+        'longform': '롱폼',
+        'shortform': '숏폼',
+        'pricing': '단가'
+      };
+
+      var totalPageVisits = Object.values(pageCounts).reduce(function(a, b) { return a + b; }, 0);
+      var pageData = Object.keys(pageCounts).map(function(page) {
+        return {
+          page: page,
+          label: pageNames[page] || page,
+          count: pageCounts[page],
+          percent: totalPageVisits > 0 ? Math.round((pageCounts[page] / totalPageVisits) * 100) : 0
+        };
+      }).sort(function(a, b) { return b.count - a.count; });
+
+      return {
+        today: todayVisitors.size,
+        week: weekVisitors.size,
+        month: monthVisitors.size,
+        daily: dailyData,
+        pages: pageData
+      };
+    }
+
+    // Render statistics
+    function renderStats(stats) {
+      // Summary cards
+      document.getElementById('stat-today').textContent = stats.today;
+      document.getElementById('stat-week').textContent = stats.week;
+      document.getElementById('stat-month').textContent = stats.month;
+
+      // 7-day trend chart
+      var maxDaily = Math.max.apply(null, stats.daily.map(function(d) { return d.count; }));
+      if (maxDaily === 0) maxDaily = 1;
+      var trendHtml = stats.daily.map(function(d) {
+        var heightPercent = Math.max((d.count / maxDaily) * 100, 3);
+        return '<div class="trend-bar-col">' +
+          '<span class="trend-bar-count">' + d.count + '</span>' +
+          '<div class="trend-bar" style="height: ' + heightPercent + '%"></div>' +
+          '<span class="trend-bar-date">' + d.label + '</span>' +
+          '</div>';
+      }).join('');
+      document.getElementById('trend-chart').innerHTML = trendHtml;
+
+      // Page breakdown
+      var maxPagePercent = stats.pages.length > 0 ? stats.pages[0].percent : 1;
+      if (maxPagePercent === 0) maxPagePercent = 1;
+      var pageHtml = '';
+      if (stats.pages.length === 0) {
+        pageHtml = '<p style="color: var(--color-muted); font-size: 0.85rem;">아직 방문 기록이 없습니다.</p>';
+      } else {
+        pageHtml = stats.pages.map(function(p) {
+          var barWidth = Math.max((p.percent / maxPagePercent) * 100, 2);
+          return '<div class="page-bar-row">' +
+            '<span class="page-bar-label">' + p.label + '</span>' +
+            '<div class="page-bar-track">' +
+            '<div class="page-bar-fill" style="width: ' + barWidth + '%"></div>' +
+            '</div>' +
+            '<span class="page-bar-value">' + p.count + '회 (' + p.percent + '%)</span>' +
+            '</div>';
+        }).join('');
+      }
+      document.getElementById('page-breakdown').innerHTML = pageHtml;
+
+      // Show content, hide loading
+      document.getElementById('stats-loading').classList.add('hidden');
+      document.getElementById('stats-content').classList.remove('hidden');
+    }
+
+    // Main load function
+    async function loadStats() {
+      var statsLoading = document.getElementById('stats-loading');
+      var statsContent = document.getElementById('stats-content');
+      
+      statsLoading.classList.remove('hidden');
+      statsContent.classList.add('hidden');
+
+      try {
+        var visits = await fetchVisitData();
+        var stats = computeStats(visits);
+        renderStats(stats);
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+        statsLoading.innerHTML = '<p style="color: var(--color-error);">통계 데이터를 불러오는데 실패했습니다.<br><small>' + err.message + '</small></p>';
+      }
+    }
 
     // Init
     document.addEventListener("DOMContentLoaded", async () => {
