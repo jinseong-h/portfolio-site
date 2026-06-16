@@ -220,6 +220,21 @@
               <!-- Dynamically populated -->
             </div>
           </div>
+
+          <!-- Day of Week Pattern -->
+          <div class="stats-section">
+            <div class="stats-section-header">
+              <h3 class="stats-section-title" style="border-bottom: none; margin-bottom: 0;">요일별 방문 패턴</h3>
+              <div class="stats-toggle">
+                <button class="stats-toggle-btn active" id="weekday-btn-7" onclick="switchWeekdayRange(7)">최근 7일</button>
+                <button class="stats-toggle-btn" id="weekday-btn-30" onclick="switchWeekdayRange(30)">최근 30일</button>
+              </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-muted); margin-bottom: 12px;">어떤 요일에 방문자가 가장 많은지 확인할 수 있습니다</p>
+            <div class="weekday-chart" id="weekday-chart">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -657,6 +672,8 @@
       // 7) Hourly counts (for both 7-day and 30-day)
       var hourlyCounts7 = {};
       var hourlyCounts30 = {};
+      var weekdayCounts7 = {};
+      var weekdayCounts30 = {};
       for (var h = 0; h < 24; h++) {
         hourlyCounts7[h] = 0;
         hourlyCounts30[h] = 0;
@@ -698,6 +715,16 @@
         // Month
         monthVisitors.add(v.visitor_id);
         hourlyCounts30[kstHour]++;
+
+        // Day of week (KST)
+        var kstDate = new Date(visitDate.getTime() + 9 * 60 * 60 * 1000);
+        var dayOfWeek = kstDate.getUTCDay(); // 0=Sun, 6=Sat
+        if (isWithinDays(v.visited_at, 7)) {
+          if (!weekdayCounts7[dayOfWeek]) weekdayCounts7[dayOfWeek] = 0;
+          weekdayCounts7[dayOfWeek]++;
+        }
+        if (!weekdayCounts30[dayOfWeek]) weekdayCounts30[dayOfWeek] = 0;
+        weekdayCounts30[dayOfWeek]++;
 
         // Page breakdown
         if (!pageCounts[v.page]) pageCounts[v.page] = 0;
@@ -750,6 +777,29 @@
         hourlyAvg30.push({ hour: h, label: h + '시', avg: Math.round((hourlyCounts30[h] / daysFor30) * 10) / 10 });
       }
 
+      // Weekday averages
+      var dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+      var weekdayAvg7 = [];
+      var weekdayAvg30 = [];
+      // Count how many of each weekday in 7/30 day window
+      var weekdayDivisor7 = {};
+      var weekdayDivisor30 = {};
+      for (var wd = 0; wd < 7; wd++) { weekdayDivisor7[wd] = 0; weekdayDivisor30[wd] = 0; }
+      for (var d = 0; d < 30; d++) {
+        var dd = new Date(now);
+        dd.setDate(dd.getDate() - d);
+        var kstDD = new Date(dd.getTime() + 9 * 60 * 60 * 1000);
+        var wd = kstDD.getUTCDay();
+        weekdayDivisor30[wd]++;
+        if (d < 7) weekdayDivisor7[wd]++;
+      }
+      for (var wd = 0; wd < 7; wd++) {
+        var div7 = weekdayDivisor7[wd] || 1;
+        var div30 = weekdayDivisor30[wd] || 1;
+        weekdayAvg7.push({ day: wd, label: dayNames[wd], avg: Math.round(((weekdayCounts7[wd] || 0) / div7) * 10) / 10 });
+        weekdayAvg30.push({ day: wd, label: dayNames[wd], avg: Math.round(((weekdayCounts30[wd] || 0) / div30) * 10) / 10 });
+      }
+
       // Page name mapping
       var pageNames = {
         'index': '홈',
@@ -776,6 +826,8 @@
         daily30: dailyData30,
         hourly7: hourlyAvg7,
         hourly30: hourlyAvg30,
+        weekday7: weekdayAvg7,
+        weekday30: weekdayAvg30,
         pages: pageData
       };
     }
@@ -813,6 +865,19 @@
     function switchHourlyRange(range) { renderHourlyChart(range); }
     window.switchHourlyRange = switchHourlyRange;
 
+    // Render weekday chart
+    var currentWeekdayRange = 7;
+    function renderWeekdayChart(range) {
+      if (!currentStats) return;
+      currentWeekdayRange = range;
+      var data = range === 7 ? currentStats.weekday7 : currentStats.weekday30;
+      renderBarChart('weekday-chart', data, 'label', 'avg');
+      document.getElementById('weekday-btn-7').classList.toggle('active', range === 7);
+      document.getElementById('weekday-btn-30').classList.toggle('active', range === 30);
+    }
+    function switchWeekdayRange(range) { renderWeekdayChart(range); }
+    window.switchWeekdayRange = switchWeekdayRange;
+
     // Render statistics
     function renderStats(stats) {
       currentStats = stats;
@@ -830,6 +895,9 @@
 
       // Hourly chart (default: 7 days)
       renderHourlyChart(currentHourlyRange);
+
+      // Weekday chart (default: 7 days)
+      renderWeekdayChart(currentWeekdayRange);
 
       // Page breakdown
       var maxPagePercent = stats.pages.length > 0 ? stats.pages[0].percent : 1;

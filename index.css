@@ -1201,6 +1201,36 @@ footer .copyright {
   font-size: 0.65rem;
 }
 
+/* Weekday Chart */
+.weekday-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  height: 180px;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.weekday-chart .trend-bar-col {
+  flex: 1;
+  max-width: 80px;
+}
+
+.weekday-chart .trend-bar {
+  max-width: 64px;
+  background: linear-gradient(180deg, #6366a0, #9b8ec4);
+}
+
+.weekday-chart .trend-bar-count {
+  font-size: 0.8rem;
+}
+
+.weekday-chart .trend-bar-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* Stats Section Header (with toggle) */
 .stats-section-header {
   display: flex;
