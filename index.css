@@ -1123,8 +1123,10 @@ footer .copyright {
 
 /* 30-Day Trend Chart (narrower bars) */
 .trend-chart-30 {
-  height: 200px;
+  height: 240px;
   gap: 3px;
+  padding-bottom: 44px;
+  box-sizing: border-box;
 }
 
 .trend-chart-30 .trend-bar {
@@ -1139,9 +1141,6 @@ footer .copyright {
   font-size: 0.55rem;
   writing-mode: vertical-lr;
   transform: rotate(180deg);
-  height: 36px;
-  display: flex;
-  align-items: center;
 }
 
 .trend-bar-col {
