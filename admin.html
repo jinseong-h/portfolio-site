@@ -179,6 +179,14 @@
             </div>
           </div>
 
+          <!-- 30-Day Trend (Full width) -->
+          <div class="stats-section">
+            <h3 class="stats-section-title">최근 30일 방문 추이</h3>
+            <div class="trend-chart trend-chart-30" id="trend-chart-30">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
           <!-- Two-column stats grid -->
           <div class="stats-grid">
             <!-- 7-Day Trend -->
@@ -195,6 +203,21 @@
               <div class="page-breakdown" id="page-breakdown">
                 <!-- Dynamically populated -->
               </div>
+            </div>
+          </div>
+
+          <!-- Hourly Average Heatmap (Full width) -->
+          <div class="stats-section">
+            <div class="stats-section-header">
+              <h3 class="stats-section-title" style="border-bottom: none; margin-bottom: 0;">시간대별 평균 방문 추이</h3>
+              <div class="stats-toggle">
+                <button class="stats-toggle-btn active" id="hourly-btn-7" onclick="switchHourlyRange(7)">최근 7일</button>
+                <button class="stats-toggle-btn" id="hourly-btn-30" onclick="switchHourlyRange(30)">최근 30일</button>
+              </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-muted); margin-bottom: 12px;">하루 중 어느 시간대에 방문자가 가장 많은지 보여줍니다 (KST 기준)</p>
+            <div class="hourly-chart" id="hourly-chart">
+              <!-- Dynamically populated -->
             </div>
           </div>
         </div>
@@ -628,18 +651,38 @@
       // 4) Page breakdown (30 days)
       var pageCounts = {};
       // 5) Daily counts for 7-day trend
-      var dailyCounts = {};
+      var dailyCounts7 = {};
+      // 6) Daily counts for 30-day trend
+      var dailyCounts30 = {};
+      // 7) Hourly counts (for both 7-day and 30-day)
+      var hourlyCounts7 = {};
+      var hourlyCounts30 = {};
+      for (var h = 0; h < 24; h++) {
+        hourlyCounts7[h] = 0;
+        hourlyCounts30[h] = 0;
+      }
 
       // Initialize daily counts for last 7 days
       for (var d = 0; d < 7; d++) {
         var date = new Date(now);
         date.setDate(date.getDate() - d);
         var key = date.toISOString().split('T')[0];
-        dailyCounts[key] = new Set();
+        dailyCounts7[key] = new Set();
+      }
+
+      // Initialize daily counts for last 30 days
+      for (var d = 0; d < 30; d++) {
+        var date = new Date(now);
+        date.setDate(date.getDate() - d);
+        var key = date.toISOString().split('T')[0];
+        dailyCounts30[key] = new Set();
       }
 
       visits.forEach(function(v) {
         var dateStr = toDateStr(v.visited_at);
+        var visitDate = new Date(v.visited_at);
+        // KST = UTC+9
+        var kstHour = (visitDate.getUTCHours() + 9) % 24;
 
         // Today
         if (dateStr === todayStr) {
@@ -649,32 +692,62 @@
         // Week
         if (isWithinDays(v.visited_at, 7)) {
           weekVisitors.add(v.visitor_id);
+          hourlyCounts7[kstHour]++;
         }
 
         // Month
         monthVisitors.add(v.visitor_id);
+        hourlyCounts30[kstHour]++;
 
         // Page breakdown
         if (!pageCounts[v.page]) pageCounts[v.page] = 0;
         pageCounts[v.page]++;
 
-        // Daily trend
-        if (dailyCounts[dateStr] !== undefined) {
-          dailyCounts[dateStr].add(v.visitor_id);
+        // Daily trend (7-day)
+        if (dailyCounts7[dateStr] !== undefined) {
+          dailyCounts7[dateStr].add(v.visitor_id);
+        }
+
+        // Daily trend (30-day)
+        if (dailyCounts30[dateStr] !== undefined) {
+          dailyCounts30[dateStr].add(v.visitor_id);
         }
       });
 
-      // Convert sets to counts for daily
-      var dailyData = [];
+      // Convert sets to counts for 7-day daily
+      var dailyData7 = [];
       for (var d = 6; d >= 0; d--) {
         var date = new Date(now);
         date.setDate(date.getDate() - d);
         var key = date.toISOString().split('T')[0];
-        dailyData.push({
+        dailyData7.push({
           date: key,
           label: (date.getMonth() + 1) + '/' + date.getDate(),
-          count: dailyCounts[key] ? dailyCounts[key].size : 0
+          count: dailyCounts7[key] ? dailyCounts7[key].size : 0
         });
+      }
+
+      // Convert sets to counts for 30-day daily
+      var dailyData30 = [];
+      for (var d = 29; d >= 0; d--) {
+        var date = new Date(now);
+        date.setDate(date.getDate() - d);
+        var key = date.toISOString().split('T')[0];
+        dailyData30.push({
+          date: key,
+          label: (date.getMonth() + 1) + '/' + date.getDate(),
+          count: dailyCounts30[key] ? dailyCounts30[key].size : 0
+        });
+      }
+
+      // Hourly averages
+      var hourlyAvg7 = [];
+      var hourlyAvg30 = [];
+      var daysFor7 = Math.min(7, Object.keys(dailyCounts7).length) || 1;
+      var daysFor30 = Math.min(30, Object.keys(dailyCounts30).length) || 1;
+      for (var h = 0; h < 24; h++) {
+        hourlyAvg7.push({ hour: h, label: h + '시', avg: Math.round((hourlyCounts7[h] / daysFor7) * 10) / 10 });
+        hourlyAvg30.push({ hour: h, label: h + '시', avg: Math.round((hourlyCounts30[h] / daysFor30) * 10) / 10 });
       }
 
       // Page name mapping
@@ -699,30 +772,64 @@
         today: todayVisitors.size,
         week: weekVisitors.size,
         month: monthVisitors.size,
-        daily: dailyData,
+        daily7: dailyData7,
+        daily30: dailyData30,
+        hourly7: hourlyAvg7,
+        hourly30: hourlyAvg30,
         pages: pageData
       };
     }
 
+    // Render a bar chart into a container
+    function renderBarChart(containerId, data, labelKey, valueKey) {
+      var maxVal = Math.max.apply(null, data.map(function(d) { return d[valueKey]; }));
+      if (maxVal === 0) maxVal = 1;
+      var html = data.map(function(d) {
+        var heightPercent = Math.max((d[valueKey] / maxVal) * 100, 3);
+        var displayVal = Number.isInteger(d[valueKey]) ? d[valueKey] : d[valueKey].toFixed(1);
+        return '<div class="trend-bar-col">' +
+          '<span class="trend-bar-count">' + displayVal + '</span>' +
+          '<div class="trend-bar" style="height: ' + heightPercent + '%"></div>' +
+          '<span class="trend-bar-date">' + d[labelKey] + '</span>' +
+          '</div>';
+      }).join('');
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    // Store current stats globally for hourly toggle
+    var currentStats = null;
+    var currentHourlyRange = 7;
+
+    // Render hourly chart
+    function renderHourlyChart(range) {
+      if (!currentStats) return;
+      currentHourlyRange = range;
+      var data = range === 7 ? currentStats.hourly7 : currentStats.hourly30;
+      renderBarChart('hourly-chart', data, 'label', 'avg');
+      // Toggle button state
+      document.getElementById('hourly-btn-7').classList.toggle('active', range === 7);
+      document.getElementById('hourly-btn-30').classList.toggle('active', range === 30);
+    }
+    function switchHourlyRange(range) { renderHourlyChart(range); }
+    window.switchHourlyRange = switchHourlyRange;
+
     // Render statistics
     function renderStats(stats) {
+      currentStats = stats;
+
       // Summary cards
       document.getElementById('stat-today').textContent = stats.today;
       document.getElementById('stat-week').textContent = stats.week;
       document.getElementById('stat-month').textContent = stats.month;
 
+      // 30-day trend chart
+      renderBarChart('trend-chart-30', stats.daily30, 'label', 'count');
+
       // 7-day trend chart
-      var maxDaily = Math.max.apply(null, stats.daily.map(function(d) { return d.count; }));
-      if (maxDaily === 0) maxDaily = 1;
-      var trendHtml = stats.daily.map(function(d) {
-        var heightPercent = Math.max((d.count / maxDaily) * 100, 3);
-        return '<div class="trend-bar-col">' +
-          '<span class="trend-bar-count">' + d.count + '</span>' +
-          '<div class="trend-bar" style="height: ' + heightPercent + '%"></div>' +
-          '<span class="trend-bar-date">' + d.label + '</span>' +
-          '</div>';
-      }).join('');
-      document.getElementById('trend-chart').innerHTML = trendHtml;
+      renderBarChart('trend-chart', stats.daily7, 'label', 'count');
+
+      // Hourly chart (default: 7 days)
+      renderHourlyChart(currentHourlyRange);
 
       // Page breakdown
       var maxPagePercent = stats.pages.length > 0 ? stats.pages[0].percent : 1;

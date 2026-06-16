@@ -1121,6 +1121,29 @@ footer .copyright {
   border-bottom: 1px solid var(--color-hairline);
 }
 
+/* 30-Day Trend Chart (narrower bars) */
+.trend-chart-30 {
+  height: 200px;
+  gap: 3px;
+}
+
+.trend-chart-30 .trend-bar {
+  max-width: 24px;
+}
+
+.trend-chart-30 .trend-bar-count {
+  font-size: 0.6rem;
+}
+
+.trend-chart-30 .trend-bar-date {
+  font-size: 0.55rem;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+
 .trend-bar-col {
   flex: 1;
   display: flex;
@@ -1152,6 +1175,75 @@ footer .copyright {
   color: var(--color-muted);
   margin-top: 8px;
   white-space: nowrap;
+}
+
+/* Hourly Chart */
+.hourly-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  height: 180px;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.hourly-chart .trend-bar {
+  max-width: 32px;
+  background: linear-gradient(180deg, #5b8a72, #8cb89c);
+}
+
+.hourly-chart .trend-bar-count {
+  font-size: 0.6rem;
+}
+
+.hourly-chart .trend-bar-date {
+  font-size: 0.65rem;
+}
+
+/* Stats Section Header (with toggle) */
+.stats-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-hairline);
+  margin-bottom: var(--spacing-md);
+}
+
+.stats-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.stats-toggle-btn {
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  background: var(--color-canvas);
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stats-toggle-btn:not(:last-child) {
+  border-right: 1px solid var(--color-hairline);
+}
+
+.stats-toggle-btn.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.stats-toggle-btn:hover:not(.active) {
+  background: var(--color-surface-soft);
 }
 
 /* Stats loading state */
@@ -1196,6 +1288,20 @@ footer .copyright {
   .trend-chart {
     height: 140px;
   }
+
+  .trend-chart-30 {
+    height: 160px;
+    gap: 2px;
+  }
+
+  .trend-chart-30 .trend-bar-date {
+    font-size: 0.5rem;
+  }
+
+  .hourly-chart {
+    height: 140px;
+    gap: 2px;
+  }
   
   .page-bar-label {
     width: 70px;
@@ -1206,4 +1312,11 @@ footer .copyright {
     padding: 10px 16px;
     font-size: 0.85rem;
   }
+
+  .stats-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
+
