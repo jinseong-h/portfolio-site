@@ -834,14 +834,25 @@
 
     // Render a bar chart into a container
     function renderBarChart(containerId, data, labelKey, valueKey) {
+      var container = document.getElementById(containerId);
+      var containerHeight = container.clientHeight || 180;
+      // Reserve space for count label (~18px) + date label (~24px) + gaps (~16px)
+      var barMaxPx = containerHeight - 58;
+      if (barMaxPx < 40) barMaxPx = 40;
+
       var maxVal = Math.max.apply(null, data.map(function(d) { return d[valueKey]; }));
       if (maxVal === 0) maxVal = 1;
       var html = data.map(function(d) {
         var val = d[valueKey];
-        var heightPercent = val === 0 ? 0 : Math.max((val / maxVal) * 100, 10);
-        var barStyle = val === 0
-          ? 'height: 3px; opacity: 0.3; border-radius: 2px;'
-          : 'height: ' + heightPercent + '%;';
+        var barPx;
+        var barStyle;
+        if (val === 0) {
+          barPx = 3;
+          barStyle = 'height: 3px; opacity: 0.25;';
+        } else {
+          barPx = Math.max(Math.round((val / maxVal) * barMaxPx), 6);
+          barStyle = 'height: ' + barPx + 'px;';
+        }
         var displayVal = Number.isInteger(val) ? val : val.toFixed(1);
         return '<div class="trend-bar-col">' +
           '<span class="trend-bar-count">' + displayVal + '</span>' +
@@ -849,7 +860,7 @@
           '<span class="trend-bar-date">' + d[labelKey] + '</span>' +
           '</div>';
       }).join('');
-      document.getElementById(containerId).innerHTML = html;
+      container.innerHTML = html;
     }
 
     // Store current stats globally for hourly toggle
