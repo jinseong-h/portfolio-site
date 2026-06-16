@@ -837,11 +837,15 @@
       var maxVal = Math.max.apply(null, data.map(function(d) { return d[valueKey]; }));
       if (maxVal === 0) maxVal = 1;
       var html = data.map(function(d) {
-        var heightPercent = Math.max((d[valueKey] / maxVal) * 100, 3);
-        var displayVal = Number.isInteger(d[valueKey]) ? d[valueKey] : d[valueKey].toFixed(1);
+        var val = d[valueKey];
+        var heightPercent = val === 0 ? 0 : Math.max((val / maxVal) * 100, 10);
+        var barStyle = val === 0
+          ? 'height: 3px; opacity: 0.3; border-radius: 2px;'
+          : 'height: ' + heightPercent + '%;';
+        var displayVal = Number.isInteger(val) ? val : val.toFixed(1);
         return '<div class="trend-bar-col">' +
           '<span class="trend-bar-count">' + displayVal + '</span>' +
-          '<div class="trend-bar" style="height: ' + heightPercent + '%"></div>' +
+          '<div class="trend-bar" style="' + barStyle + '"></div>' +
           '<span class="trend-bar-date">' + d[labelKey] + '</span>' +
           '</div>';
       }).join('');
