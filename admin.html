@@ -835,28 +835,24 @@
     // Render a bar chart into a container
     function renderBarChart(containerId, data, labelKey, valueKey) {
       var container = document.getElementById(containerId);
-      var containerHeight = container.clientHeight || 180;
-      // Reserve space for count label (~18px) + date label (~24px) + gaps (~16px)
-      var barMaxPx = containerHeight - 58;
-      if (barMaxPx < 40) barMaxPx = 40;
-
       var maxVal = Math.max.apply(null, data.map(function(d) { return d[valueKey]; }));
       if (maxVal === 0) maxVal = 1;
       var html = data.map(function(d) {
         var val = d[valueKey];
-        var barPx;
         var barStyle;
         if (val === 0) {
-          barPx = 3;
           barStyle = 'height: 3px; opacity: 0.25;';
         } else {
-          barPx = Math.max(Math.round((val / maxVal) * barMaxPx), 6);
-          barStyle = 'height: ' + barPx + 'px;';
+          var percentage = (val / maxVal) * 100;
+          if (percentage < 4) percentage = 4;
+          barStyle = 'height: ' + percentage.toFixed(2) + '%;';
         }
         var displayVal = Number.isInteger(val) ? val : val.toFixed(1);
         return '<div class="trend-bar-col">' +
           '<span class="trend-bar-count">' + displayVal + '</span>' +
-          '<div class="trend-bar" style="' + barStyle + '"></div>' +
+          '<div class="trend-bar-wrapper">' +
+            '<div class="trend-bar" style="' + barStyle + '"></div>' +
+          '</div>' +
           '<span class="trend-bar-date">' + d[labelKey] + '</span>' +
           '</div>';
       }).join('');
