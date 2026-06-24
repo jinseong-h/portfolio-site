@@ -1,8 +1,7 @@
 // theme.js - 테마 관리 및 토글 버튼 주입 스크립트
 (function() {
   const savedTheme = localStorage.getItem('theme');
-  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const currentTheme = savedTheme || (systemDark ? 'dark' : 'light');
+  const currentTheme = savedTheme || 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
 })();
 
