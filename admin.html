@@ -39,14 +39,18 @@
     <!-- 1. Password Protection Screen -->
     <div id="login-screen" class="login-card">
       <h2>관리자 로그인</h2>
-      <p>포트폴리오 관리를 위해 비밀번호를 입력해 주세요.</p>
+      <p>포트폴리오 관리를 위해 이메일과 비밀번호를 입력해 주세요.</p>
       <form id="login-form">
         <div class="form-group">
-          <label for="admin-password">비밀번호</label>
-          <input type="password" id="admin-password" class="form-control" placeholder="비밀번호 입력" required autofocus>
-          <span id="login-error-msg" style="color: var(--color-error); font-size: 0.8rem; margin-top: 4px; display: none;">비밀번호가 올바르지 않습니다.</span>
+          <label for="admin-email">이메일</label>
+          <input type="email" id="admin-email" class="form-control" placeholder="이메일 입력" required autofocus style="margin-bottom: var(--spacing-sm);">
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">로그인</button>
+        <div class="form-group">
+          <label for="admin-password">비밀번호</label>
+          <input type="password" id="admin-password" class="form-control" placeholder="비밀번호 입력" required>
+          <span id="login-error-msg" style="color: var(--color-error); font-size: 0.8rem; margin-top: 4px; display: none;">이메일 또는 비밀번호가 올바르지 않습니다.</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--spacing-md);">로그인</button>
       </form>
     </div>
 
@@ -248,7 +252,6 @@
   <script>
     // Constants
     const SESSION_AUTH_KEY = "jinseong_portfolio_authorized";
-    const DEFAULT_PASS = "editorjs"; // Default password for editing the portfolio
 
     // UI Elements
     const loginScreen = document.getElementById('login-screen');
@@ -281,8 +284,8 @@
 
     // 1. Authorization flow
     async function checkAuth() {
-      const isAuth = sessionStorage.getItem(SESSION_AUTH_KEY);
-      if (isAuth === "true") {
+      const isAuth = await PortfolioData.isAuthenticated();
+      if (isAuth) {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         btnLogout.classList.remove('hidden');
@@ -296,22 +299,35 @@
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (passwordInput.value === DEFAULT_PASS) {
-        sessionStorage.setItem(SESSION_AUTH_KEY, "true");
+      const email = document.getElementById('admin-email').value.trim();
+      const password = passwordInput.value;
+      
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = "로그인 중...";
+      submitBtn.disabled = true;
+      errorMsg.style.display = "none";
+      
+      try {
+        await PortfolioData.signIn(email, password);
         localStorage.setItem('jinseong_is_admin', 'true');
-        errorMsg.style.display = "none";
         passwordInput.value = "";
         await checkAuth();
         showToast("성공적으로 로그인되었습니다.");
-      } else {
+      } catch (err) {
+        errorMsg.textContent = err.message || "이메일 또는 비밀번호가 올바르지 않습니다.";
         errorMsg.style.display = "block";
         passwordInput.focus();
         passwordInput.select();
+      } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
       }
     });
 
     btnLogout.addEventListener('click', async () => {
-      sessionStorage.removeItem(SESSION_AUTH_KEY);
+      PortfolioData.signOut();
+      localStorage.removeItem('jinseong_is_admin');
       await checkAuth();
       showToast("로그아웃 되었습니다.");
     });
@@ -383,12 +399,18 @@
             
             if (confirm(`'${title}' 영상을 포트폴리오에서 삭제하시겠습니까?`)) {
               tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">삭제 중...</td></tr>`;
-              await PortfolioData.deleteVideo(id);
-              if (editingVideoId === id) {
-                resetFormState();
+              try {
+                await PortfolioData.deleteVideo(id);
+                if (editingVideoId === id) {
+                  resetFormState();
+                }
+                await loadVideoTable();
+                showToast("영상이 삭제되었습니다.");
+              } catch (err) {
+                alert(err.message || "삭제 도중 오류가 발생했습니다.");
+                await checkAuth();
+                await loadVideoTable();
               }
-              await loadVideoTable();
-              showToast("영상이 삭제되었습니다.");
             }
           });
         });
@@ -423,9 +445,15 @@
             if (btn.disabled) return;
             const id = btn.getAttribute('data-id');
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">순서 조정 중...</td></tr>`;
-            await PortfolioData.moveVideo(id, 'up');
-            await loadVideoTable();
-            showToast("영상의 노출 순서가 한 칸 위로 이동했습니다.");
+            try {
+              await PortfolioData.moveVideo(id, 'up');
+              await loadVideoTable();
+              showToast("영상의 노출 순서가 한 칸 위로 이동했습니다.");
+            } catch (err) {
+              alert(err.message || "순서 조정 중 오류가 발생했습니다.");
+              await checkAuth();
+              await loadVideoTable();
+            }
           });
         });
 
@@ -435,15 +463,22 @@
             if (btn.disabled) return;
             const id = btn.getAttribute('data-id');
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-muted);">순서 조정 중...</td></tr>`;
-            await PortfolioData.moveVideo(id, 'down');
-            await loadVideoTable();
-            showToast("영상의 노출 순서가 한 칸 아래로 이동했습니다.");
+            try {
+              await PortfolioData.moveVideo(id, 'down');
+              await loadVideoTable();
+              showToast("영상의 노출 순서가 한 칸 아래로 이동했습니다.");
+            } catch (err) {
+              alert(err.message || "순서 조정 중 오류가 발생했습니다.");
+              await checkAuth();
+              await loadVideoTable();
+            }
           });
         });
 
       } catch (err) {
         console.error("Failed to load table", err);
         tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--color-error);">데이터 로드 오류: ${err.message}</td></tr>`;
+        await checkAuth();
       }
     }
 
@@ -484,6 +519,7 @@
         }
       } catch (err) {
         alert(err.message || "작업 도중 오류가 발생했습니다.");
+        await checkAuth();
         await loadVideoTable();
       }
     });
@@ -593,6 +629,7 @@
           }
         } catch (err) {
           alert("파일을 복구하는 도중 오류가 발생했습니다: " + err.message);
+          await checkAuth();
           await loadVideoTable();
         }
       };
@@ -950,6 +987,7 @@
       } catch (err) {
         console.error('Failed to load stats:', err);
         statsLoading.innerHTML = '<p style="color: var(--color-error);">통계 데이터를 불러오는데 실패했습니다.<br><small>' + err.message + '</small></p>';
+        await checkAuth();
       }
     }
 

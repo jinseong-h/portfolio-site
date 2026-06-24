@@ -96,17 +96,136 @@ const SUPABASE_URL = "https://zyqqbwzdxunbngehdoqi.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5cXFid3pkeHVuYm5nZWhkb3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU1NjAsImV4cCI6MjA5NjkyMTU2MH0.Cry86TJ7FkoQpS_hmJgYZ4S7H8XkNsDaqbt4KI4UFqA";
 
 const PortfolioData = {
+// Session storage helpers
+  saveSession(session) {
+    if (session && session.access_token) {
+      localStorage.setItem("supabase_session", JSON.stringify(session));
+    } else {
+      localStorage.removeItem("supabase_session");
+    }
+  },
+
+  getSession() {
+    const sessionStr = localStorage.getItem("supabase_session");
+    if (!sessionStr) return null;
+    try {
+      return JSON.parse(sessionStr);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async isAuthenticated() {
+    let session = this.getSession();
+    if (!session) return false;
+    
+    // Check if token is expired or close to expiring (within 60s)
+    if (session.expires_at && Date.now() / 1000 > session.expires_at - 60) {
+      if (session.refresh_token) {
+        try {
+          session = await this.refreshSession(session.refresh_token);
+        } catch (e) {
+          console.warn("Failed to refresh token", e);
+          this.saveSession(null);
+          return false;
+        }
+      } else {
+        this.saveSession(null);
+        return false;
+      }
+    }
+    return !!session;
+  },
+
+  async signIn(email, password) {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      let errMsg = "로그인에 실패했습니다.";
+      try {
+        const errObj = JSON.parse(errText);
+        errMsg = errObj.error_description || errObj.message || errMsg;
+      } catch (e) {}
+      throw new Error(errMsg);
+    }
+    
+    const data = await response.json();
+    if (!data.expires_at && data.expires_in) {
+      data.expires_at = Math.floor(Date.now() / 1000) + data.expires_in;
+    }
+    this.saveSession(data);
+    return data;
+  },
+
+  async refreshSession(refreshToken) {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    
+    if (!response.ok) {
+      this.saveSession(null);
+      throw new Error("세션이 만료되었습니다. 다시 로그인 해주세요.");
+    }
+    
+    const data = await response.json();
+    if (!data.expires_at && data.expires_in) {
+      data.expires_at = Math.floor(Date.now() / 1000) + data.expires_in;
+    }
+    this.saveSession(data);
+    return data;
+  },
+
+  signOut() {
+    this.saveSession(null);
+  },
+
   // Asynchronous fetch wrapper for Supabase REST API
   async _fetch(path, options = {}) {
+    let authHeader = `Bearer ${SUPABASE_KEY}`;
+    const session = this.getSession();
+    
+    if (session && session.access_token) {
+      // Check and refresh token if close to expiring (within 60s)
+      if (session.expires_at && Date.now() / 1000 > session.expires_at - 60 && session.refresh_token) {
+        try {
+          const newSession = await this.refreshSession(session.refresh_token);
+          authHeader = `Bearer ${newSession.access_token}`;
+        } catch (e) {
+          console.warn("Failed to refresh token in _fetch, falling back to anon key", e);
+          this.saveSession(null);
+        }
+      } else {
+        authHeader = `Bearer ${session.access_token}`;
+      }
+    }
+
     const headers = {
       "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Authorization": authHeader,
       "Content-Type": "application/json",
       ...options.headers
     };
     const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...options, headers });
     if (!response.ok) {
       const errText = await response.text();
+      // If 401 or 403 error happens while using custom auth token, it means invalid session
+      if ((response.status === 401 || response.status === 403) && session && session.access_token) {
+        this.saveSession(null);
+        throw new Error("인증 세션이 만료되었거나 권한이 없습니다. 다시 로그인 해주세요.");
+      }
       throw new Error(`Supabase error: ${errText || response.statusText}`);
     }
     if (options.method === "DELETE") return true;
