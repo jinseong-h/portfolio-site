@@ -94,6 +94,81 @@
   --transition-normal: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Dark Theme Overrides */
+[data-theme="dark"] {
+  --color-canvas: #121110;
+  --color-surface-soft: #1a1917;
+  --color-surface-card: #201f1d;
+  --color-surface-cream-strong: #2c2a27;
+  
+  --color-ink: #f5f2eb;
+  --color-body: #d1cdc5;
+  --color-body-strong: #e8e4db;
+  --color-muted: #9e9a91;
+  --color-muted-soft: #7a7770;
+  --color-hairline: #2d2b28;
+  --color-hairline-soft: #252321;
+  
+  --color-primary: #e08a6d;
+  --color-primary-active: #f09e82;
+  --color-primary-disabled: #2c2a27;
+}
+
+/* Theme Toggle Button & Layout Adjustments */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--color-ink);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--rounded-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-normal);
+  margin-left: auto;
+  margin-right: 16px;
+  z-index: 101;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--color-surface-soft);
+  color: var(--color-primary);
+}
+
+.theme-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.2;
+  fill: none;
+  stroke: currentColor;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle-btn:active svg {
+  transform: rotate(30deg);
+}
+
+/* Toggle icon visibility based on theme */
+html:not([data-theme="dark"]) .theme-toggle-btn .sun-icon {
+  display: none;
+}
+html:not([data-theme="dark"]) .theme-toggle-btn .moon-icon {
+  display: block;
+}
+html[data-theme="dark"] .theme-toggle-btn .sun-icon {
+  display: block;
+}
+html[data-theme="dark"] .theme-toggle-btn .moon-icon {
+  display: none;
+}
+
+/* Featured pricing card styling adjustment in dark mode */
+[data-theme="dark"] .pricing-card.featured {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(224, 138, 109, 0.15);
+}
+
 /* Resets */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -110,6 +185,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   word-break: keep-all;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
