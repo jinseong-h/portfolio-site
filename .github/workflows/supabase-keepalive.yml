@@ -1,0 +1,30 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs every 3 days at 03:00 UTC (12:00 KST) to prevent Supabase free tier inactivity pause (7-day cutoff)
+    - cron: '0 3 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" "https://zyqqbwzdxunbngehdoqi.supabase.co/rest/v1/videos?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5cXFid3pkeHVuYm5nZWhkb3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU1NjAsImV4cCI6MjA5NjkyMTU2MH0.Cry86TJ7FkoQpS_hmJgYZ4S7H8XkNsDaqbt4KI4UFqA' }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5cXFid3pkeHVuYm5nZWhkb3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU1NjAsImV4cCI6MjA5NjkyMTU2MH0.Cry86TJ7FkoQpS_hmJgYZ4S7H8XkNsDaqbt4KI4UFqA' }}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "Successfully pinged Supabase! Inactivity timer refreshed."
+          else
+            echo "Ping failed with status code $HTTP_CODE"
+            exit 1
+          fi
