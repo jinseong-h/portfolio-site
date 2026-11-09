@@ -13,7 +13,7 @@ jobs:
       - name: Ping Portfolio Supabase Database
         run: |
           echo "Pinging Video Editor Portfolio..."
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://zyqqbwzdxunbngehdoqi.supabase.co/rest/v1/videos?select=id&limit=1" \
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://zyqqbwzdxunbngehdoqi.supabase.co/rest/v1/rpc/keep_alive_ping" \
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5cXFid3pkeHVuYm5nZWhkb3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU1NjAsImV4cCI6MjA5NjkyMTU2MH0.Cry86TJ7FkoQpS_hmJgYZ4S7H8XkNsDaqbt4KI4UFqA" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5cXFid3pkeHVuYm5nZWhkb3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNDU1NjAsImV4cCI6MjA5NjkyMTU2MH0.Cry86TJ7FkoQpS_hmJgYZ4S7H8XkNsDaqbt4KI4UFqA")
 
@@ -28,7 +28,7 @@ jobs:
       - name: Ping Geulmaru Supabase Database
         run: |
           echo "Pinging Geulmaru Archive..."
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://gqrixdhupbdcymedxdmf.supabase.co/rest/v1/members?select=id&limit=1" \
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://gqrixdhupbdcymedxdmf.supabase.co/rest/v1/rpc/keep_alive_ping" \
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxcml4ZGh1cGJkY3ltZWR4ZG1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NDgyMjYsImV4cCI6MjEwNDQyNDIyNn0.4eNhd4EoF93WGJ-j_LAOzzwzm-5D-BRPZWeS3-2_Hvg" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxcml4ZGh1cGJkY3ltZWR4ZG1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NDgyMjYsImV4cCI6MjEwNDQyNDIyNn0.4eNhd4EoF93WGJ-j_LAOzzwzm-5D-BRPZWeS3-2_Hvg")
 
